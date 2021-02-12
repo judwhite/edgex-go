@@ -52,7 +52,6 @@ func (ml *mongoLog) closeSession() {
 }
 
 func (ml *mongoLog) add(le models.LogEntry) error {
-
 	session := ml.session.Copy()
 	defer session.Close()
 
@@ -103,11 +102,9 @@ func createQuery(criteria matchCriteria) bson.M {
 	}
 
 	return bson.M{"$and": conditions}
-
 }
 
 func (ml *mongoLog) remove(criteria matchCriteria) (int, error) {
-
 	session := ml.session.Copy()
 	defer session.Close()
 
@@ -148,5 +145,4 @@ func (ml *mongoLog) reset() {
 	defer session.Close()
 
 	session.DB(Configuration.Databases["Primary"].Name).C(db.LogsCollection).RemoveAll(bson.M{})
-	return
 }

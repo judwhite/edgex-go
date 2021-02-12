@@ -81,29 +81,24 @@ func (l privLogger) log(logLevel string, msg string, args ...interface{}) {
 		dbClient.add(logEntry)
 	}
 
-	if args == nil {
-		args = []interface{}{"msg", msg}
-	} else {
-		if len(args)%2 == 1 {
-			// add an empty string to keep k/v pairs correct
-			args = append(args, "")
-		}
-		// Practical usage thus far has been to call this type like so Logger.Info("message")
-		// I'm attempting to preserve that behavior below without requiring the client types
-		// to provide the "msg" key.
-		args = append(args, "msg", msg)
+	if len(args)%2 == 1 {
+		// add an empty string to keep k/v pairs correct
+		args = append(args, "")
 	}
+	// Practical usage thus far has been to call this type like so Logger.Info("message")
+	// I'm attempting to preserve that behavior below without requiring the client types
+	// to provide the "msg" key.
+	args = append(args, "msg", msg)
 
 	if l.levelLoggers[logLevel] == nil {
 		l.levelLoggers[logLevel] = log.WithPrefix(l.rootLogger, "level", logLevel)
 	}
 	l.levelLoggers[logLevel].Log(args...)
-
 }
 
 // SetLogLevel sets logger log level
 func (l privLogger) SetLogLevel(logLevel string) error {
-	if logger.IsValidLogLevel(logLevel) == true {
+	if logger.IsValidLogLevel(logLevel) {
 		*l.logLevel = logLevel
 		return nil
 	}

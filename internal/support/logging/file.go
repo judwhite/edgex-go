@@ -67,15 +67,18 @@ func (fl *fileLog) remove(criteria matchCriteria) (int, error) {
 		return 0, err
 	}
 
-	defer os.Remove(tmpFilename)
+	defer func() {
+		tmpFile.Close()
+		os.Remove(tmpFilename)
+	}()
 
 	f, err := os.Open(fl.filename)
 	if err != nil {
 		fmt.Println("Error opening log file: ", fl.filename, err)
-		tmpFile.Close()
 		return 0, err
 	}
 	defer f.Close()
+
 	count := 0
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -88,21 +91,30 @@ func (fl *fileLog) remove(criteria matchCriteria) (int, error) {
 				tmpFile.Write(line)
 				tmpFile.Write([]byte("\n"))
 			} else {
-				count += 1
+				count++
 			}
 		}
 	}
 
+	if err = scanner.Err(); err != nil {
+		return 0, err
+	}
+
+	// Close old file to open the new one when writing next log
 	tmpFile.Close()
+	f.Close()
+
+	if fl.out != nil {
+		fl.out.Close()
+		fl.out = nil
+	}
+
 	err = os.Rename(tmpFilename, fl.filename)
 	if err != nil {
 		//fmt.Printf("Error renaming %s to %s: %v", tmpFilename, fl.filename, err)
 		return 0, err
 	}
 
-	// Close old file to open the new one when writing next log
-	fl.out.Close()
-	fl.out = nil
 	return count, nil
 }
 
@@ -113,6 +125,7 @@ func (fl *fileLog) find(criteria matchCriteria) ([]models.LogEntry, error) {
 		//fmt.Println("Error opening log file: ", fl.filename, err)
 		return nil, err
 	}
+	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		var le models.LogEntry
@@ -129,6 +142,7 @@ func (fl *fileLog) find(criteria matchCriteria) ([]models.LogEntry, error) {
 			}
 		}
 	}
+	err = scanner.Err()
 	return logs, err
 }
 
